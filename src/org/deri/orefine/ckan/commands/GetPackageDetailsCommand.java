@@ -19,7 +19,6 @@ public class GetPackageDetailsCommand extends Command{
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		
 		String packageId = request.getParameter("package_id");
 		String ckanApiBase = request.getParameter("ckan_base_api");
 		String packageUrl = ckanApiBase + "/" + packageId;

@@ -13,7 +13,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.deri.orefine.ckan.CkanApiProxy;
 import org.deri.orefine.ckan.exporter.HistoryJsonExporter;
 import org.deri.orefine.ckan.rdf.ProvenanceFactory;
+import org.deri.orefine.ckan.model.Slugify;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.JSONWriter;
 
 import com.google.refine.Jsonizable;
@@ -24,14 +26,21 @@ import com.google.refine.exporters.Exporter;
 import com.google.refine.exporters.ExporterRegistry;
 import com.google.refine.model.Project;
 
-public class UploadToCKANCommand extends Command{
 
+public class UploadToCKANCommand extends Command{
+        
+        private static final String CKAN_DEFAULT_BASE_URL = "http://master.ckan.org/";
+    
 	@Override
-	public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
 		Project project = getProject(request);
 		String apikey = request.getParameter("apikey");
 		String ckanApiBase = request.getParameter("ckan_base_api");
-		final String packageId = request.getParameter("package_id");
+
+                Slugify slg = new Slugify();
+		final String packageName = request.getParameter("package_id");
+                final String packageId = slg.slugify(packageName);
+                
 		boolean createNewIfNonExisitng = getBoolean(request,"create_new");
 		boolean addProvenanceInfo = false;
 		boolean rememberApiKey = getBoolean(request,"remember_api_key");
@@ -40,6 +49,8 @@ public class UploadToCKANCommand extends Command{
 		String files = request.getParameter("files");
 		
 		try{
+		        
+		        JSONObject options = new JSONObject(request.getParameter("options"));
 			if(ckanApiBase==null || ckanApiBase.isEmpty()){
 				throw new RuntimeException("Some required parameters are missing: CKAN API base URL");
 			}
@@ -48,8 +59,10 @@ public class UploadToCKANCommand extends Command{
 			}
 			if(rememberApiKey){
 				saveApiKey(apikey);
+				saveCKANBase(ckanApiBase);
 			}else{
 				forgetApiKey();
+				forgetCKANBase();
 			}
 			//remove the last "/" from CKAN API base if it exists
 			ckanApiBase = ckanApiBase.trim();
@@ -84,7 +97,7 @@ public class UploadToCKANCommand extends Command{
 				exporters.add(exporter);
 			}
 			
-			final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase , packageId, exporters, project, engine, 
+			final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase , packageName, options, exporters, project, engine, 
 					new ProvenanceFactory(), apikey, createNewIfNonExisitng, addProvenanceInfo);
 			respondJSON(response, new Jsonizable() {
 				
@@ -102,7 +115,7 @@ public class UploadToCKANCommand extends Command{
 				}
 			});
 		}catch(Exception e){
-			respondException(response, e);
+		    respondException(response, e);
 		}
 	}
 
@@ -113,6 +126,14 @@ public class UploadToCKANCommand extends Command{
 	private void forgetApiKey(){
 		ProjectManager.singleton.getPreferenceStore().put("CKAN.api_key", "");
 	}
+	
+	private void saveCKANBase(String key){
+            ProjectManager.singleton.getPreferenceStore().put("CKAN.ckan_base_url", key);
+        }
+    
+        private void forgetCKANBase(){
+            ProjectManager.singleton.getPreferenceStore().put("CKAN.ckan_base_url", CKAN_DEFAULT_BASE_URL);
+        }
 	
 	private boolean getBoolean(HttpServletRequest request, String paramName){
 		return request.getParameter(paramName)!=null && request.getParameter(paramName).toLowerCase().equals("true");

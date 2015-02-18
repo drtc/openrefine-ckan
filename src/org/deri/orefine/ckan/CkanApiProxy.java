@@ -19,6 +19,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.deri.orefine.ckan.model.Resource;
+import org.deri.orefine.ckan.model.Slugify;
 import org.deri.orefine.ckan.rdf.ProvenanceFactory;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,6 +31,12 @@ import com.google.refine.exporters.StreamExporter;
 import com.google.refine.exporters.WriterExporter;
 import com.google.refine.model.Project;
 import com.hp.hpl.jena.rdf.model.Model;
+
+import java.io.BufferedWriter;
+import java.io.File;
+
+import java.io.FileWriter;
+
 
 public class CkanApiProxy {
 
@@ -72,6 +79,47 @@ public class CkanApiProxy {
 		return ckan_url;
 	}
 	
+	public String registerPackageResources_CKAN_2_3(String ckanBaseUri, String packageId, Set<Resource> resources, String apiKey) throws ClientProtocolException, IOException, JSONException{
+            //get the package 
+            HttpClient client = new DefaultHttpClient();
+            //head request does not work! 
+            String packageUrl = ckanBaseUri + "/api/action/package_show?id=" + packageId;
+            HttpGet get = new HttpGet(packageUrl);
+            HttpResponse response = client.execute(get);
+            if(response.getStatusLine().getStatusCode() != 200){
+                    throw new RuntimeException("package " + packageUrl + " not found");
+            }
+            //parse resources 
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            response.getEntity().writeTo(os);
+            JSONObject packageObj = new JSONObject(os.toString());
+            JSONArray resourcesArr = packageObj.getJSONObject("results").getJSONArray("resources");
+            String ckan_url = packageUrl;
+            //add the new resources
+            for(Resource resource:resources){
+                    resourcesArr.put(resource.asJsonObject());
+            }
+            //save
+            JSONObject obj = new JSONObject();
+            obj.put("resources", resourcesArr);
+            
+            HttpPost post = new HttpPost(packageUrl);
+            post.setHeader("Authorization", apiKey);
+            post.setHeader("X-CKAN-API-Key", apiKey);
+            StringEntity entity = new StringEntity(obj.toString(),"UTF-8");
+            post.setHeader("Content-type","application/x-www-form-urlencoded");
+            post.setEntity(entity);
+            
+            response =  client.execute(post);
+            
+            if(response.getStatusLine().getStatusCode()!=200){
+                    throw new RuntimeException("something went wrong whil registering the new resource of package " + packageUrl );
+            }
+            
+            return ckan_url;
+    }
+    
+	
 	/**
 	 * @param packageUrl
 	 * @return checks whether a package with the URL given exists
@@ -99,32 +147,34 @@ public class CkanApiProxy {
 		return new JSONObject(os.toString());
 	}
 	
-	public void registerNewPackage(String packageId, String ckanBaseUri, String apikey) throws ClientProtocolException, IOException, JSONException{
+	public void registerNewPackage(String packageName, JSONObject options, String ckanBaseUri, String apikey) throws ClientProtocolException, IOException, JSONException{
 		HttpClient client = new DefaultHttpClient();
-		//head request does not work! 
-		HttpPost post = new HttpPost(ckanBaseUri);
+		//head request does not work!
+		HttpPost post = new HttpPost(ckanBaseUri + "/api/action/package_create");
 		post.setHeader("Authorization", apikey);
 		post.setHeader("Content-type","application/x-www-form-urlencoded");
-		StringEntity entity = new StringEntity(getNewPackageInJson(packageId).toString(),"UTF-8");
+		StringEntity entity = new StringEntity(getNewPackageInJson(packageName,options).toString(),"UTF-8");
 		post.setEntity(entity);
-		
 		HttpResponse response = client.execute(post);
 		int responseCode = response.getStatusLine().getStatusCode();
+		
 		if(responseCode < 200 || responseCode >=300){
 			throw new RuntimeException("failed to register a new package with response code " + responseCode + " at " + ckanBaseUri );
 		}
 	}
 	
 	//return the URL of the package
-	public String addGroupOfResources(String ckanBaseUri, String packageId, Set<Exporter> exporters, Project project, 
+	public String addGroupOfResources(String ckanBaseUri, String packageName, JSONObject json, Set<Exporter> exporters, Project project, 
 			Engine engine, ProvenanceFactory provFactory, String apikey, boolean createNewIfNonExisitng, boolean provenanceRequired) throws IOException, JSONException {
-		Map<String,String> resourceFormatsUrlsMap = new HashMap<String, String>();
-		String packageUrl = ckanBaseUri + "/" + packageId;
+	        Slugify slg = new Slugify();
+	        String packageId = slg.slugify(packageName);
+	        Map<String,String> resourceFormatsUrlsMap = new HashMap<String, String>();
+		String packageUrl = ckanBaseUri + "/dataset/" + packageId;
 		Set<Resource> resources = new HashSet<Resource>();
 		if(! exists(packageUrl)){
 			if(createNewIfNonExisitng){
 				//create a new package
-				registerNewPackage(packageId, ckanBaseUri,apikey);
+				registerNewPackage(packageName, json, ckanBaseUri,apikey);
 			}else{
 				//fail
 				throw new RuntimeException("Package with id " + packageId + " does not exist on " + ckanBaseUri);
@@ -134,35 +184,49 @@ public class CkanApiProxy {
 		
 		String seed = "-" + getRandomString(project.id);
 		for(Exporter exporter:exporters){
-			String lbl = exporter.getContentType().replaceAll("\\/", "-") + seed;
 			String url;
+			
+			String project_name = project.getMetadata().getName();
+                        String format = translateFileFormat(exporter.getContentType());
+                        String filename = json.get("name").toString();
+                        
+                        if(format.equalsIgnoreCase("JSON")) {
+                            filename += " Operations History";
+                        }
+                        
+                        
+                        Slugify slg2 = new Slugify(false);
+                        File temp_file = createTempFile(slg2.slugify(filename), format);
+                        
+                        JSONObject resouce_json = new JSONObject();
+                        resouce_json.put("package_id", packageId);
+                        resouce_json.put("description",  json.get("description"));
+                        resouce_json.put("name",  filename);
+                        resouce_json.put("format", format.toUpperCase());
+                        resouce_json.put("url","");
+                        
 			if(exporter instanceof WriterExporter){
 				StringWriter out = new StringWriter();
 				((WriterExporter) exporter).export(project, new Properties(), engine, out);
-				url = storage.uploadFile(out.toString(), lbl, apikey);
+				BufferedWriter bw = new BufferedWriter(new FileWriter(temp_file));
+                                bw.write(out.toString());
+                                bw.close();
+                                url = storage.resourceCreate(ckanBaseUri,apikey,temp_file,resouce_json);
 			}else if(exporter instanceof StreamExporter){
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				((StreamExporter) exporter).export(project, new Properties(), engine, out);
-				url = storage.uploadFile(out.toString(), lbl, apikey);
+                                BufferedWriter bw = new BufferedWriter(new FileWriter(temp_file));
+                                bw.write(out.toString());
+                                bw.close();
+                                url = storage.resourceCreate(ckanBaseUri,apikey,temp_file,resouce_json);
 			}else{
+			        temp_file.deleteOnExit();
 				throw new RuntimeException("Unknown exporter type");
 			}
-			//collect the added resource
-			resourceFormatsUrlsMap.put(exporter.getContentType(),url);
-			resources.add(getCkanResource(exporter.getContentType(), url, packageId));
+			temp_file.deleteOnExit();
 		}
-		//if provenance is required
-		if(provenanceRequired){
-			//make sure that all the required files are provided
-			if(resourceFormatsUrlsMap.containsKey("application/x-unknown") && resourceFormatsUrlsMap.containsKey("text/turtle") && resourceFormatsUrlsMap.containsKey("application/json")){
-				String provFileLabel = "provenance-" + seed; 
-				resources.add(getProvenance(resourceFormatsUrlsMap,storage, provFactory , provFileLabel, apikey));
-			}
-		}
-		//register resources
-		String ckan_url = this.registerPackageResources(packageUrl, resources, apikey);
-		
-		return ckan_url;
+
+		return packageUrl;
 	}
 	
 	private Resource getProvenance(Map<String, String> resourceFormatsUrlsMap, StorageApiProxy storage, ProvenanceFactory provFactory, String provFileLabel, String apikey) {
@@ -194,10 +258,15 @@ public class CkanApiProxy {
 		return new Resource(format, description, url);
 	}
 	
-	private JSONObject getNewPackageInJson(String packageId) throws JSONException {
+	private JSONObject getNewPackageInJson(String packageName,JSONObject options) throws JSONException, IOException {
 		JSONObject obj = new JSONObject();
-		obj.put("name", packageId);
+		Slugify slg = new Slugify();
+		obj.put("name", slg.slugify(packageName));
+		obj.put("title", packageName);
 		obj.put("notes", "This package was created using Google Refine extension.");
+		if(options.has("owner_org")) {
+		    obj.put("owner_org", options.get("owner_org"));
+		}
 		
 		return obj;
 	}
@@ -207,10 +276,31 @@ public class CkanApiProxy {
 		return formatLabels.get(format);
 	}
 	
+	private String translateFileFormat(String format){
+            return fileFormats.get(format);
+        }
+	
 	private static final Map<String, String> formatLabels = new HashMap<String, String>();
 	static{
+	        formatLabels.put("text/plain", "CSV table");
 		formatLabels.put("text/csv", "CSV table");
 		formatLabels.put("application/json", "Operation history");
 		formatLabels.put("text/turtle", "RDF data");
 	}
+	
+	private static final Map<String, String> fileFormats = new HashMap<String, String>();
+        static{
+                fileFormats.put("text/plain", "csv");
+                fileFormats.put("text/csv", "csv");
+                fileFormats.put("application/json", "json");
+                fileFormats.put("text/turtle", "rdf");
+        }
+        
+        public File createTempFile(String prefix, String suffix){
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String fileName = (prefix != null ? prefix : "" ) + (suffix != null ? "." + suffix : "" ) ;
+            return new File(tempDir, fileName);
+        }
+        
+	
 }

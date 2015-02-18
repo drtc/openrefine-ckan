@@ -1,6 +1,7 @@
 package org.deri.orefine.ckan;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
@@ -9,14 +10,24 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.Iterator;
+import java.io.File;
+
+
+
 
 public class StorageApiProxy {
 
@@ -83,6 +94,73 @@ public class StorageApiProxy {
 			throw new RuntimeException("failed to upload file to CKAN Storage ",ioe);
 		}
 	}
+	
+	public String resourceCreate(String ckanBaseUri,String apikey, File file,  JSONObject resource_json) {
+            HttpResponse formFields = null;
+            try{
+                String filekey = null;
+                
+                // Configure Timeout Parameters
+                HttpParams httpParameters = new BasicHttpParams();
+                int timeoutConnection = 10000;
+                HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
+                HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
+                // Set the default socket timeout (SO_TIMEOUT) 
+                // in milliseconds which is the timeout for waiting for data.
+                int timeoutSocket = 5000000;
+                HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
+
+                HttpClient client = new DefaultHttpClient(httpParameters);
+                
+                
+                String formUrl = ckanBaseUri + "/api/action/resource_create";
+
+                //post the file now
+                //String uploadFileUrl = obj.getString("action");
+                HttpPost postFile = new HttpPost(formUrl);
+                postFile.setHeader("Authorization", apikey);
+                
+                MultipartEntity mpEntity = new MultipartEntity(HttpMultipartMode.STRICT);
+
+                //the file should be the last part
+                //hack... StringBody didn't work with large files
+                System.out.println("Uploading : " + file.getName() + "...");
+                
+                mpEntity.addPart("upload",new FileBody(file, "application/octet-stream"));
+                // mpEntity.addPart("package_id",  new StringBody(packageId));
+                // mpEntity.addPart("name",  new StringBody(file.getName()));
+                // mpEntity.addPart("url", new StringBody(""));
+                
+                Iterator<String> iter = resource_json.keys();
+                while (iter.hasNext()) {
+                    String key = iter.next();
+                    try {
+                        String string_value = resource_json.get(key).toString();
+                        mpEntity.addPart(key, new StringBody(string_value));
+                    } catch (JSONException e) {
+                        throw new RuntimeException("something wrong with resource_create options",e);
+                    }
+                }
+
+                postFile.setEntity(mpEntity);
+                    
+                HttpResponse fileUploadResponse = client.execute(postFile);
+                    
+                //check if the response status code was in the 200 range
+                if(fileUploadResponse.getStatusLine().getStatusCode()<200 || fileUploadResponse.getStatusLine().getStatusCode()>=300){
+                    throw new RuntimeException("failed to add the file to CKAN storage. response status line from " + formUrl + " was: " + fileUploadResponse.getStatusLine());
+                }
+                try {
+                    return ckanBaseUri + "/dataset/" + resource_json.get("package_id").toString();
+                }
+                catch (JSONException e) {
+                    throw new RuntimeException("something wrong with resource_create options (package_id)",e);
+                }
+            }catch(IOException ioe){
+                    throw new RuntimeException("failed to upload file to CKAN Storage ",ioe);
+            }
+        }
+    
 	
 	private static final String CKAN_STORAGE_BASE_URI = "http://datahub.io/api/storage";
 	private static final String CKAN_STORAGE_FILES_BASE_URI = "http://datahub.io/storage/f/";
