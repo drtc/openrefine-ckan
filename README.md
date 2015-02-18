@@ -1,13 +1,18 @@
-# Google Refine CKAN Storage Extension
-# (for CKAN v2.2+)
+# Google Refine CKAN Storage Extension (for CKAN v2.2+)
+
 
 Upload data directly from Google Refine to CKAN using CKAN API.
 
+
 This project is a modifed and updated version of [Fadmaa](https://github.com/fadmaa/grefine-ckan-storage-extension)'s work. The earlier version did not support CKAN API v3. The source code is updated to comply with CKAN 2.2 and API v3. 
 
+
 You can find more about the earlier extension version here:
+
 [http://lab.linkeddata.deri.ie/2011/grefine-ckan/](http://lab.linkeddata.deri.ie/2011/grefine-ckan/)
+
 and
+
 [https://github.com/fadmaa/grefine-ckan-storage-extension](https://github.com/fadmaa/grefine-ckan-storage-extension)
 
 
@@ -15,16 +20,19 @@ Installation
 -----
 * Make sure you have Google Refine installed on your machine (see [here](https://github.com/OpenRefine/OpenRefine))
 * Pull grefine-ckan-storage-extension source into OpenRefine's extensions folder::
-        cd [[path_to_refine]]/OpenRefine/extensions/
+
+        cd {{path_to_refine}}/OpenRefine/extensions/
         git clone https://github.com/Ontodia/grefine-ckan-storage-extension.git
-* Restart Refine
-         cd [[path_to_refine]]/OpenRefine/
+* Restart Refine:
+
+         cd {{path_to_refine}}/OpenRefine/
         ./refine
 
 Developers
 -----
 * If you made any changes to the original source. Recompile build.xml with ant:
-        cd [[path_to_refine]]/OpenRefine/grefine-ckan-storage-extension/
+
+        cd {{path_to_refine}}/OpenRefine/grefine-ckan-storage-extension/
         ant clean
         ant build
 * Restart Refine
