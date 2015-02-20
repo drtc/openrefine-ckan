@@ -21,29 +21,34 @@ Installation
 -----
 * Make sure you have Google Refine installed on your machine (see [here](https://github.com/OpenRefine/OpenRefine))
 * Pull grefine-ckan-storage-extension source into OpenRefine's extensions folder (create one if it doesn't exists)::
+
         For MAC OS:
         cd ~/Library/Application\ Support/OpenRefine/extensions/
         git clone https://github.com/Ontodia/grefine-ckan-storage-extension.git
+        
 * Restart OpenRefine
 
 Developers
 -----
 * If you made changes to the source you need to recompile OpenRefine. 
 * Add following lines to OpenRefine/extensions/build.xml::
+
         <target name="build">
                 ...
                 <ant dir="grefine-ckan-storage-extension/" target="build" />
         </target>
+        
         <target name="clean">
-                ...
-                <ant dir="grefine-ckan-storage-extension/" target="build" />
+              ...
+              <ant dir="grefine-ckan-storage-extension/" target="build" />
         </target>
         
-        
 * Recompile OpenRefine source code as::
+
         cd {{path_to_refine}}/OpenRefine/
         ./refine clean
         ./refine build
+        
 * Restart OpenRefine
 
 
