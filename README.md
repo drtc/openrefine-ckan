@@ -34,12 +34,13 @@ Developers
                 ...
                 <ant dir="grefine-ckan-storage-extension/" target="build" />
         </target>
-
         <target name="clean">
                 ...
                 <ant dir="grefine-ckan-storage-extension/" target="build" />
         </target>
-* Recompile OpenRefine source code as:
+        
+        
+* Recompile OpenRefine source code as::
         cd {{path_to_refine}}/OpenRefine/
         ./refine clean
         ./refine build
