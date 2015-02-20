@@ -1,5 +1,6 @@
-# Google Refine CKAN Storage Extension (for CKAN v2.2+)
+# OpenRefine CKAN Storage Extension (for CKAN v2.2+)
 
+** Currently works with OpenRefine 2.6-beta1
 
 Upload data directly from Google Refine to CKAN using CKAN API.
 
@@ -19,23 +20,30 @@ and
 Installation
 -----
 * Make sure you have Google Refine installed on your machine (see [here](https://github.com/OpenRefine/OpenRefine))
-* Pull grefine-ckan-storage-extension source into OpenRefine's extensions folder::
-
-        cd {{path_to_refine}}/OpenRefine/extensions/
+* Pull grefine-ckan-storage-extension source into OpenRefine's extensions folder (create one if it doesn't exists)::
+        For MAC OS:
+        cd ~/Library/Application\ Support/OpenRefine/extensions/
         git clone https://github.com/Ontodia/grefine-ckan-storage-extension.git
-* Restart Refine:
-
-         cd {{path_to_refine}}/OpenRefine/
-        ./refine
+* Restart OpenRefine
 
 Developers
 -----
-* If you made any changes to the original source. Recompile build.xml with ant:
+* If you made changes to the source you need to recompile OpenRefine. 
+* Add following lines to OpenRefine/extensions/build.xml::
+        <target name="build">
+                ...
+                <ant dir="grefine-ckan-storage-extension/" target="build" />
+        </target>
 
-        cd {{path_to_refine}}/OpenRefine/grefine-ckan-storage-extension/
-        ant clean
-        ant build
-* Restart Refine
+        <target name="clean">
+                ...
+                <ant dir="grefine-ckan-storage-extension/" target="build" />
+        </target>
+* Recompile OpenRefine source code as:
+        cd {{path_to_refine}}/OpenRefine/
+        ./refine clean
+        ./refine build
+* Restart OpenRefine
 
 
 TODO
@@ -43,3 +51,5 @@ TODO
 *   Currently the upload uses CKAN API [create_resource](http://docs.ckan.org/en/latest/api/#ckan.logic.action.create.resource_create) action. By defualt this will timeout for large files after 30 secs. In order to fix this; use [datastore api](http://docs.ckan.org/en/ckan-2.2/datastore.html), split data into chunks and upload chunks via datastore api.
 *   Better documentation.
 *   Code clean-up
+*   We should test and fix problems with other OpenRefine and CKAN versions.
+*   Feel free to contribute
