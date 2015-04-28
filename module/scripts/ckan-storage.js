@@ -213,7 +213,7 @@ CkanStorage.prototype._getApiDetails = function(onDone){
 			      '<td>Description:</td>' + 
 			      '<td>' +
 			        '<table class="ckan-package-details-table">' +
-			          '<tr><td><input style="width:300px;height:60px;word-break: break-word;vertical-align:top;line-height:16px;" type="text" bind="resource_description" value="This resource is created using Google Refine extension."/></td></tr>' +
+			          '<tr><td><input style="width:300px;height:60px;word-break: break-word;vertical-align:top;line-height:16px;" type="text" bind="resource_description" value="This resource is created using Open Refine extension."/></td></tr>' +
 			        '</table>' + 
 			      '</td>' +
 			    '</tr>' +		    
