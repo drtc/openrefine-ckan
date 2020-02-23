@@ -1,3 +1,5 @@
+!! Forked from https://github.com/OpenGov-OpenData/openrefine-ckan-storage-extension
+
 # OpenRefine CKAN Storage Extension (for CKAN v2.2+)
 
 !! Currently tested and works with OpenRefine 2.6-beta1 and CKAN v2.2+
