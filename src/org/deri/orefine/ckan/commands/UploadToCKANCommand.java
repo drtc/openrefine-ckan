@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.io.Writer;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -16,7 +17,9 @@ import org.deri.orefine.ckan.rdf.ProvenanceFactory;
 import org.deri.orefine.ckan.model.Slugify;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONWriter;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 //import com.google.refine.Jsonizable;
 import com.google.refine.ProjectManager;
@@ -25,6 +28,7 @@ import com.google.refine.commands.Command;
 import com.google.refine.exporters.Exporter;
 import com.google.refine.exporters.ExporterRegistry;
 import com.google.refine.model.Project;
+import com.google.refine.util.ParsingUtilities;
 
 
 public class UploadToCKANCommand extends Command {
@@ -99,22 +103,21 @@ public class UploadToCKANCommand extends Command {
 
             final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase, packageName, options, exporters, project, engine,
                     new ProvenanceFactory(), apikey, createNewIfNonExisitng, addProvenanceInfo);
-//			TODO: Move to Jackson data-bind from org.json
-//			respondJSON(response, new Jsonizable() {
-//
-//				@Override
-//				public void write(JSONWriter writer, Properties options)
-//						throws JSONException {
-//					writer.object();
-//					writer.key("code"); writer.value("ok");
-//					writer.key("package_details");
-//					writer.object();
-//					writer.key("packageUrl"); writer.value(packageUrl);
-//					writer.key("packageId"); writer.value(packageId);
-//					writer.endObject();
-//					writer.endObject();
-//				}
-//			});
+
+            //TODO: Needs testing
+            Writer w = response.getWriter();
+            JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
+            writer.writeStartObject();
+            writer.writeStringField("code", "ok");
+            writer.writeStartObject("package_details");
+            writer.writeStringField("packageUrl", packageUrl);
+            writer.writeStringField("packageId", packageId);
+            writer.writeEndObject();
+            writer.writeEndObject();
+            writer.flush();
+            writer.close();
+            w.flush();
+            w.close();
         } catch (Exception e) {
             respondException(response, e);
         }
