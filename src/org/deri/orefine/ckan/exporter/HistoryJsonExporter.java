@@ -26,9 +26,10 @@ public class HistoryJsonExporter implements WriterExporter{
 			JSONWriter writer = new JSONWriter(w);
 			writer.array();
 			for (HistoryEntry entry : project.history.getLastPastEntries(-1)) {
-                if (entry.operation != null) {
-                    entry.operation.write(writer, options);
-                }
+//				 TODO: Move to Jackson data-bind from org.json
+//                if (entry.operation != null) {
+//                    entry.operation.write(writer, options);
+//                }
             }
 			writer.endArray();
 		}catch(JSONException je){

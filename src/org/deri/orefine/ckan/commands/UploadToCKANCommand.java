@@ -18,7 +18,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 
-import com.google.refine.Jsonizable;
+//import com.google.refine.Jsonizable;
 import com.google.refine.ProjectManager;
 import com.google.refine.browsing.Engine;
 import com.google.refine.commands.Command;
@@ -28,9 +28,9 @@ import com.google.refine.model.Project;
 
 
 public class UploadToCKANCommand extends Command{
-        
+
         private static final String CKAN_DEFAULT_BASE_URL = "http://master.ckan.org/";
-    
+
 	@Override
 	public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
 		Project project = getProject(request);
@@ -40,16 +40,16 @@ public class UploadToCKANCommand extends Command{
                 Slugify slg = new Slugify();
 		final String packageName = request.getParameter("package_id");
                 final String packageId = slg.slugify(packageName);
-                
+
 		boolean createNewIfNonExisitng = getBoolean(request,"create_new");
 		boolean addProvenanceInfo = false;
 		boolean rememberApiKey = getBoolean(request,"remember_api_key");
-		
+
 		//get (comma-separated list of ) formats required to be uploaded
 		String files = request.getParameter("files");
-		
+
 		try{
-		        
+
 		        JSONObject options = new JSONObject(request.getParameter("options"));
 			if(ckanApiBase==null || ckanApiBase.isEmpty()){
 				throw new RuntimeException("Some required parameters are missing: CKAN API base URL");
@@ -69,16 +69,16 @@ public class UploadToCKANCommand extends Command{
 			if(ckanApiBase.endsWith("/")){
 				ckanApiBase = ckanApiBase.substring(0, ckanApiBase.length()-1);
 			}
-			
+
 			CkanApiProxy ckanApiClient = new CkanApiProxy();
-					
+
 			Engine engine = getEngine(request, project);
 			StringTokenizer tokenizer = new StringTokenizer(files, ",");
 			Set<Exporter> exporters = new HashSet<Exporter>();
 			while(tokenizer.hasMoreTokens()){
 				String format = tokenizer.nextToken();
 				Exporter exporter = ExporterRegistry.getExporter(format);
-				
+
 				if(exporter==null){
 					//handle the specialcase of provenance
 					if(format.equals("add_provenance_info")){
@@ -96,24 +96,25 @@ public class UploadToCKANCommand extends Command{
 				}
 				exporters.add(exporter);
 			}
-			
-			final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase , packageName, options, exporters, project, engine, 
+
+			final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase , packageName, options, exporters, project, engine,
 					new ProvenanceFactory(), apikey, createNewIfNonExisitng, addProvenanceInfo);
-			respondJSON(response, new Jsonizable() {
-				
-				@Override
-				public void write(JSONWriter writer, Properties options)
-						throws JSONException {
-					writer.object();
-					writer.key("code"); writer.value("ok");
-					writer.key("package_details");
-					writer.object();
-					writer.key("packageUrl"); writer.value(packageUrl);
-					writer.key("packageId"); writer.value(packageId);
-					writer.endObject();
-					writer.endObject();
-				}
-			});
+//			TODO: Move to Jackson data-bind from org.json
+//			respondJSON(response, new Jsonizable() {
+//
+//				@Override
+//				public void write(JSONWriter writer, Properties options)
+//						throws JSONException {
+//					writer.object();
+//					writer.key("code"); writer.value("ok");
+//					writer.key("package_details");
+//					writer.object();
+//					writer.key("packageUrl"); writer.value(packageUrl);
+//					writer.key("packageId"); writer.value(packageId);
+//					writer.endObject();
+//					writer.endObject();
+//				}
+//			});
 		}catch(Exception e){
 		    respondException(response, e);
 		}
@@ -122,19 +123,19 @@ public class UploadToCKANCommand extends Command{
 	private void saveApiKey(String key){
 		ProjectManager.singleton.getPreferenceStore().put("CKAN.api_key", key);
 	}
-	
+
 	private void forgetApiKey(){
 		ProjectManager.singleton.getPreferenceStore().put("CKAN.api_key", "");
 	}
-	
+
 	private void saveCKANBase(String key){
             ProjectManager.singleton.getPreferenceStore().put("CKAN.ckan_base_url", key);
         }
-    
+
         private void forgetCKANBase(){
             ProjectManager.singleton.getPreferenceStore().put("CKAN.ckan_base_url", CKAN_DEFAULT_BASE_URL);
         }
-	
+
 	private boolean getBoolean(HttpServletRequest request, String paramName){
 		return request.getParameter(paramName)!=null && request.getParameter(paramName).toLowerCase().equals("true");
 	}
