@@ -4,6 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -19,9 +23,14 @@ import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+//import org.json.JSONArray;
+//import org.json.JSONException;
+//import org.json.JSONObject;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.refine.util.ParsingUtilities;
 
 import java.util.Iterator;
 import java.io.File;
@@ -48,20 +57,27 @@ public class StorageApiProxy {
 				entity.writeTo(os);
 			
 				//now parse JSON
-				JSONObject obj = new JSONObject(os.toString());
-			
+//				JSONObject obj = new JSONObject(os.toString());
+//				ObjectNode obj = ParsingUtilities.mapper.readValue(os.toString(), ObjectNode.class);
+				ObjectNode obj = ParsingUtilities.evaluateJsonStringToObjectNode(os.toString());
+
 				//post the file now
-				String uploadFileUrl = obj.getString("action");
+				String uploadFileUrl = obj.get("action").asText();
 				HttpPost postFile = new HttpPost(uploadFileUrl);
 				postFile.setHeader("Authorization", apikey);
 				MultipartEntity mpEntity = new MultipartEntity(HttpMultipartMode.STRICT);
 			
-				JSONArray fields = obj.getJSONArray("fields");
-				for(int i=0;i<fields.length();i++){
-					JSONObject fieldObj = fields.getJSONObject(i);
-					String fieldName = fieldObj.getString("name");
-					String fieldValue = fieldObj.getString("value");
-					if(fieldName.equals("key")){
+//				JSONArray fields = obj.getJSONArray("fields");
+				ArrayNode fields = (ArrayNode) obj.get("fields");
+//				for(int i=0;i<fields.length();i++){
+				for(int i=0;i<fields.size();i++){
+//					JSONObject fieldObj = fields.getJSONObject(i);
+					ObjectNode fieldObj = (ObjectNode) fields.get(i);
+//					String fieldName = fieldObj.getString("name");
+//					String fieldValue = fieldObj.getString("value");
+					String fieldName = fieldObj.get("name").asText();
+					String fieldValue = fieldObj.get("value").asText();
+					if (fieldName.equals("key")){
 						filekey = fieldValue;
 					}
 					mpEntity.addPart(fieldName, new StringBody(fieldValue,"multipart/form-data",Charset.forName("UTF-8")));
@@ -88,14 +104,15 @@ public class StorageApiProxy {
 				return CKAN_STORAGE_FILES_BASE_URI + filekey;
 			}
 			throw new RuntimeException("failed to get form details from CKAN storage. response line was: " + formFields.getStatusLine());
-		}catch(JSONException je){
-			throw new RuntimeException("failed to upload file to CKAN Storage. A wrong API key maybe? ",je);
+//		}catch(JSONException je){
+//			throw new RuntimeException("failed to upload file to CKAN Storage. A wrong API key maybe? ",je);
 		}catch(IOException ioe){
 			throw new RuntimeException("failed to upload file to CKAN Storage ",ioe);
 		}
 	}
 	
-	public String resourceCreate(String ckanBaseUri,String apikey, File file,  JSONObject resource_json) {
+//	public String resourceCreate(String ckanBaseUri,String apikey, File file,  JSONObject resource_json) {
+	public String resourceCreate(String ckanBaseUri,String apikey, File file,  ObjectNode resource_json) throws IOException {
             HttpResponse formFields = null;
             try{
                 String filekey = null;
@@ -131,16 +148,23 @@ public class StorageApiProxy {
                 // mpEntity.addPart("name",  new StringBody(file.getName()));
                 // mpEntity.addPart("url", new StringBody(""));
                 
-                Iterator<String> iter = resource_json.keys();
-                while (iter.hasNext()) {
-                    String key = iter.next();
-                    try {
-                        String string_value = resource_json.get(key).toString();
-                        mpEntity.addPart(key, new StringBody(string_value));
-                    } catch (JSONException e) {
-                        throw new RuntimeException("something wrong with resource_create options",e);
-                    }
-                }
+//                Iterator<String> iter = resource_json.keys();
+//                while (iter.hasNext()) {
+//                    String key = iter.next();
+//                    try {
+//                        String string_value = resource_json.get(key).toString();
+//                        mpEntity.addPart(key, new StringBody(string_value));
+//                    } catch (JSONException e) {
+//                        throw new RuntimeException("something wrong with resource_create options",e);
+//                    }
+//                }
+
+				Iterator<Entry<String, JsonNode>> iter = resource_json.fields();
+				while (iter.hasNext()) {
+					Map.Entry<String, JsonNode> entry = (Map.Entry<String, JsonNode>) iter.next();
+					String string_value = entry.getValue().asText();
+					mpEntity.addPart(entry.getKey(), new StringBody(string_value));
+				}
 
                 postFile.setEntity(mpEntity);
                     
@@ -150,12 +174,12 @@ public class StorageApiProxy {
                 if(fileUploadResponse.getStatusLine().getStatusCode()<200 || fileUploadResponse.getStatusLine().getStatusCode()>=300){
                     throw new RuntimeException("failed to add the file to CKAN storage. response status line from " + formUrl + " was: " + fileUploadResponse.getStatusLine());
                 }
-                try {
+//                try {
                     return ckanBaseUri + "/dataset/" + resource_json.get("package_id").toString();
-                }
-                catch (JSONException e) {
-                    throw new RuntimeException("something wrong with resource_create options (package_id)",e);
-                }
+//                }
+//                catch (JSONException e) {
+//                    throw new RuntimeException("something wrong with resource_create options (package_id)",e);
+//                }
             }catch(IOException ioe){
                     throw new RuntimeException("failed to upload file to CKAN Storage ",ioe);
             }

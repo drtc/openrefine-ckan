@@ -15,11 +15,12 @@ import org.deri.orefine.ckan.CkanApiProxy;
 import org.deri.orefine.ckan.exporter.HistoryJsonExporter;
 import org.deri.orefine.ckan.rdf.ProvenanceFactory;
 import org.deri.orefine.ckan.model.Slugify;
-import org.json.JSONException;
-import org.json.JSONObject;
+//import org.json.JSONException;
+//import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 //import com.google.refine.Jsonizable;
 import com.google.refine.ProjectManager;
@@ -54,7 +55,8 @@ public class UploadToCKANCommand extends Command {
 
         try {
 
-            JSONObject options = new JSONObject(request.getParameter("options"));
+//            JSONObject options = new JSONObject(request.getParameter("options"));
+            ObjectNode options = ParsingUtilities.evaluateJsonStringToObjectNode(request.getParameter("options"));
             if (ckanApiBase == null || ckanApiBase.isEmpty()) {
                 throw new RuntimeException("Some required parameters are missing: CKAN API base URL");
             }

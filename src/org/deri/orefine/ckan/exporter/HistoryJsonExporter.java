@@ -25,14 +25,14 @@ public class HistoryJsonExporter implements WriterExporter {
         try {
 			JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
 			writer.writeStartObject();
-			writer.writeStartArray();
+//			writer.writeStartArray();
             for (HistoryEntry entry : project.history.getLastPastEntries(-1)) {
                 // TODO: Needs testing
                 if (entry.operation != null) {
 					writer.writeObject(options);
                 }
             }
-			writer.writeEndArray();
+//			writer.writeEndArray();
 			writer.writeEndObject();
 			writer.flush();
 			writer.close();
