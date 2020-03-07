@@ -10,27 +10,27 @@ import com.google.refine.util.ParsingUtilities;
 
 public class Resource {
 
-	public final String format;
-	public final String description;
-	public final String url;
+    public final String format;
+    public final String description;
+    public final String url;
 
-	public Resource(String format, String description,String url) {
-		this.format = format;
-		this.description = description;
-		this.url = url;
-	}
-	
-//	public JSONObject asJsonObject() throws JSONException{
+    public Resource(String format, String description, String url) {
+        this.format = format;
+        this.description = description;
+        this.url = url;
+    }
+
+    //	public JSONObject asJsonObject() throws JSONException{
 //		JSONObject obj = new JSONObject();
 //		obj.put("url", url);
 //		obj.put("description", description);
 //		obj.put("format", format);
-	public ObjectNode asJsonObject() {
-		ObjectNode obj = ParsingUtilities.mapper.createObjectNode();
-		JSONUtilities.safePut(obj, "url", url);
-		JSONUtilities.safePut(obj, "description", description);
-		JSONUtilities.safePut(obj, "format", format);
+    public ObjectNode asJsonObject() {
+        ObjectNode obj = ParsingUtilities.mapper.createObjectNode();
+        JSONUtilities.safePut(obj, "url", url);
+        JSONUtilities.safePut(obj, "description", description);
+        JSONUtilities.safePut(obj, "format", format);
 
-		return obj;
-	}
+        return obj;
+    }
 }
