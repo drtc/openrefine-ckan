@@ -21,9 +21,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.deri.orefine.ckan.model.Resource;
 import org.deri.orefine.ckan.model.Slugify;
 import org.deri.orefine.ckan.rdf.ProvenanceFactory;
-//import org.json.JSONArray;
-//import org.json.JSONException;
-//import org.json.JSONObject;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -59,21 +56,17 @@ public class CkanApiProxy {
         //parse resources
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         response.getEntity().writeTo(os);
-//		JSONObject packageObj = new JSONObject(os.toString());
-//		JSONArray resourcesArr = packageObj.getJSONArray("resources");
         ObjectNode packageObj = ParsingUtilities.evaluateJsonStringToObjectNode(os.toString());
         ArrayNode resourcesArr = (ArrayNode) packageObj.withArray("resources");
         String ckan_url = packageObj.get("ckan_url").asText();
 
-        // TODO: Fix this loop
         //add the new resources
-//		for (Resource resource : resources){
-//			resourcesArr.put(resource.asJsonObject());
-//		}
+        resources.forEach((Resource resource) -> {
+            resourcesArr.add(resource.asJsonObject());
+        });
         //save
-//		JSONObject obj = new JSONObject();
         ObjectNode obj = ParsingUtilities.mapper.createObjectNode();
-        obj.put("resources", resourcesArr);
+        JSONUtilities.safePut(obj, "resources", resourcesArr);
 
         HttpPost post = new HttpPost(packageUrl);
         post.setHeader("Authorization", apiKey);
@@ -91,7 +84,6 @@ public class CkanApiProxy {
         return ckan_url;
     }
 
-    //	public String registerPackageResources_CKAN_2_3(String ckanBaseUri, String packageId, Set<Resource> resources, String apiKey) throws ClientProtocolException, IOException, JSONException{
     public String registerPackageResources_CKAN_2_3(String ckanBaseUri, String packageId, Set<Resource> resources, String apiKey) throws ClientProtocolException, IOException {
         //get the package
         HttpClient client = new DefaultHttpClient();
@@ -105,20 +97,16 @@ public class CkanApiProxy {
         //parse resources
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         response.getEntity().writeTo(os);
-//            JSONObject packageObj = new JSONObject(os.toString());
-//            JSONArray resourcesArr = packageObj.getJSONObject("results").getJSONArray("resources");
         ObjectNode packageObj = ParsingUtilities.mapper.readValue(os.toString(), ObjectNode.class);
         ArrayNode resourcesArr = (ArrayNode) packageObj.get("results").withArray("resources");
         String ckan_url = packageUrl;
-        // TODO: Fix this loop
         //add the new resources
-//            for (Resource resource : resources){
-//                    resourcesArr.put(resource.asJsonObject());
-//            }
+        resources.forEach((Resource resource) -> {
+            resourcesArr.add(resource.asJsonObject());
+        });
         //save
-//            JSONObject obj = new JSONObject();
         ObjectNode obj = ParsingUtilities.mapper.createObjectNode();
-        obj.put("resources", resourcesArr);
+        JSONUtilities.safePut(obj, "resources", resourcesArr);
 
         HttpPost post = new HttpPost(packageUrl);
         post.setHeader("Authorization", apiKey);
@@ -151,7 +139,6 @@ public class CkanApiProxy {
         return response.getStatusLine().getStatusCode() == 200;
     }
 
-    //	public JSONObject getPackage(String packageUrl) throws ClientProtocolException, IOException, JSONException{
     public ObjectNode getPackage(String packageUrl) throws ClientProtocolException, IOException {
         HttpClient client = new DefaultHttpClient();
         //head request does not work!
@@ -162,12 +149,9 @@ public class CkanApiProxy {
         }
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         response.getEntity().writeTo(os);
-//		return new JSONObject(os.toString());
-//		return ParsingUtilities.evaluateJsonStringToObjectNode(os.toString());
         return ParsingUtilities.mapper.readValue(os.toString(), ObjectNode.class);
     }
 
-    //	public void registerNewPackage(String packageName, JSONObject options, String ckanBaseUri, String apikey) throws ClientProtocolException, IOException, JSONException{
     public void registerNewPackage(String packageName, ObjectNode options, String ckanBaseUri, String apikey) throws ClientProtocolException, IOException {
         HttpClient client = new DefaultHttpClient();
         //head request does not work!
@@ -185,7 +169,6 @@ public class CkanApiProxy {
     }
 
     //return the URL of the package
-//	public String addGroupOfResources(String ckanBaseUri, String packageName, JSONObject json, Set<Exporter> exporters, Project project,
     public String addGroupOfResources(String ckanBaseUri, String packageName, ObjectNode json, Set<Exporter> exporters, Project project,
                                       Engine engine, ProvenanceFactory provFactory, String apikey, boolean createNewIfNonExisitng, boolean provenanceRequired) throws IOException {
         Slugify slg = new Slugify();
@@ -220,18 +203,12 @@ public class CkanApiProxy {
             Slugify slg2 = new Slugify(false);
             File temp_file = createTempFile(slg2.slugify(filename), format);
 
-//                        JSONObject resouce_json = new JSONObject();
-//                        resouce_json.put("package_id", packageId);
-//                        resouce_json.put("description",  json.get("description"));
-//                        resouce_json.put("name",  filename);
-//                        resouce_json.put("format", format.toUpperCase());
-//                        resouce_json.put("url","");
-            ObjectNode resouce_json = ParsingUtilities.mapper.createObjectNode();
-            JSONUtilities.safePut(resouce_json, "package_id", packageId);
-            JSONUtilities.safePut(resouce_json, "description", json.get("description"));
-            JSONUtilities.safePut(resouce_json, "name", filename);
-            JSONUtilities.safePut(resouce_json, "format", format.toUpperCase());
-            JSONUtilities.safePut(resouce_json, "url", "");
+            ObjectNode resource_json = ParsingUtilities.mapper.createObjectNode();
+            JSONUtilities.safePut(resource_json, "package_id", packageId);
+            JSONUtilities.safePut(resource_json, "description", json.get("description"));
+            JSONUtilities.safePut(resource_json, "name", filename);
+            JSONUtilities.safePut(resource_json, "format", format.toUpperCase());
+            JSONUtilities.safePut(resource_json, "url", "");
 
             if (exporter instanceof WriterExporter) {
                 StringWriter out = new StringWriter();
@@ -239,14 +216,14 @@ public class CkanApiProxy {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(temp_file));
                 bw.write(out.toString());
                 bw.close();
-                url = storage.resourceCreate(ckanBaseUri, apikey, temp_file, resouce_json);
+                url = storage.resourceCreate(ckanBaseUri, apikey, temp_file, resource_json);
             } else if (exporter instanceof StreamExporter) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ((StreamExporter) exporter).export(project, new Properties(), engine, out);
                 BufferedWriter bw = new BufferedWriter(new FileWriter(temp_file));
                 bw.write(out.toString());
                 bw.close();
-                url = storage.resourceCreate(ckanBaseUri, apikey, temp_file, resouce_json);
+                url = storage.resourceCreate(ckanBaseUri, apikey, temp_file, resource_json);
             } else {
                 temp_file.deleteOnExit();
                 throw new RuntimeException("Unknown exporter type");
@@ -286,9 +263,7 @@ public class CkanApiProxy {
         return new Resource(format, description, url);
     }
 
-    //	private JSONObject getNewPackageInJson(String packageName,JSONObject options) throws JSONException, IOException {
     private ObjectNode getNewPackageInJson(String packageName, ObjectNode options) throws IOException {
-//		JSONObject obj = new JSONObject();
         ObjectNode obj = ParsingUtilities.mapper.createObjectNode();
         Slugify slg = new Slugify();
         obj.put("name", slg.slugify(packageName));
