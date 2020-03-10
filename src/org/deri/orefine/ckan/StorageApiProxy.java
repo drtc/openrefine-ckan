@@ -18,6 +18,7 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
@@ -117,34 +118,26 @@ public class StorageApiProxy {
 
             HttpClient client = new DefaultHttpClient(httpParameters);
 
-
             String formUrl = ckanBaseUri + "/api/action/resource_create";
 
             //post the file now
-            //String uploadFileUrl = obj.getString("action");
             HttpPost postFile = new HttpPost(formUrl);
             postFile.setHeader("Authorization", apikey);
 
-            MultipartEntity mpEntity = new MultipartEntity(HttpMultipartMode.STRICT);
-
-            //the file should be the last part
-            //hack... StringBody didn't work with large files
             System.out.println("Uploading : " + file.getName() + "...");
-
-            mpEntity.addPart("upload", new FileBody(file, "application/octet-stream"));
-            // mpEntity.addPart("package_id",  new StringBody(packageId));
-            // mpEntity.addPart("name",  new StringBody(file.getName()));
-            // mpEntity.addPart("url", new StringBody(""));
+            String filePath = System.getProperty("java.io.tmpdir") + file.getName();
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.addBinaryBody("upload", new File(filePath));
 
             Iterator<Entry<String, JsonNode>> iter = resource_json.fields();
             while (iter.hasNext()) {
                 Map.Entry<String, JsonNode> entry = (Map.Entry<String, JsonNode>) iter.next();
                 String string_value = entry.getValue().asText();
-                mpEntity.addPart(entry.getKey(), new StringBody(string_value));
+                builder.addPart(entry.getKey(), new StringBody(string_value));
             }
 
+            HttpEntity mpEntity = builder.build();
             postFile.setEntity(mpEntity);
-
             HttpResponse fileUploadResponse = client.execute(postFile);
 
             //check if the response status code was in the 200 range

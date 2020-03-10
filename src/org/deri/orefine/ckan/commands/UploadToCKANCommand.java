@@ -15,14 +15,11 @@ import org.deri.orefine.ckan.CkanApiProxy;
 import org.deri.orefine.ckan.exporter.HistoryJsonExporter;
 import org.deri.orefine.ckan.rdf.ProvenanceFactory;
 import org.deri.orefine.ckan.model.Slugify;
-//import org.json.JSONException;
-//import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-//import com.google.refine.Jsonizable;
 import com.google.refine.ProjectManager;
 import com.google.refine.browsing.Engine;
 import com.google.refine.commands.Command;
@@ -53,9 +50,11 @@ public class UploadToCKANCommand extends Command {
         //get (comma-separated list of ) formats required to be uploaded
         String files = request.getParameter("files");
 
+        Writer w = response.getWriter();
+        JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
+
         try {
 
-//            JSONObject options = new JSONObject(request.getParameter("options"));
             ObjectNode options = ParsingUtilities.evaluateJsonStringToObjectNode(request.getParameter("options"));
             if (ckanApiBase == null || ckanApiBase.isEmpty()) {
                 throw new RuntimeException("Some required parameters are missing: CKAN API base URL");
@@ -106,22 +105,22 @@ public class UploadToCKANCommand extends Command {
             final String packageUrl = ckanApiClient.addGroupOfResources(ckanApiBase, packageName, options, exporters, project, engine,
                     new ProvenanceFactory(), apikey, createNewIfNonExisitng, addProvenanceInfo);
 
-            //TODO: Needs testing
-            Writer w = response.getWriter();
-            JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
             writer.writeStartObject();
             writer.writeStringField("code", "ok");
-            writer.writeStartObject("package_details");
+            writer.writeArrayFieldStart("package_details");
+            writer.writeStartObject();
             writer.writeStringField("packageUrl", packageUrl);
             writer.writeStringField("packageId", packageId);
             writer.writeEndObject();
+            writer.writeEndArray();
             writer.writeEndObject();
+        } catch (Exception e) {
+            respondException(response, e);
+        } finally {
             writer.flush();
             writer.close();
             w.flush();
             w.close();
-        } catch (Exception e) {
-            respondException(response, e);
         }
     }
 

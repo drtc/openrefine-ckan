@@ -22,22 +22,27 @@ public class HistoryJsonExporter implements WriterExporter {
 
     @Override
     public void export(Project project, Properties options, Engine engine, Writer w) throws IOException {
+        JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
         try {
-            JsonGenerator writer = ParsingUtilities.mapper.getFactory().createGenerator(w);
             writer.writeStartObject();
-//			writer.writeStartArray();
+            writer.writeArrayFieldStart("history-json");
             for (HistoryEntry entry : project.history.getLastPastEntries(-1)) {
                 // TODO: Needs testing
                 if (entry.operation != null) {
+                    writer.writeStartObject();
                     writer.writeObject(options);
+                    writer.writeEndObject();
                 }
             }
-//			writer.writeEndArray();
+            writer.writeEndArray();
             writer.writeEndObject();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
             writer.flush();
             writer.close();
-        } catch (IOException je) {
-            throw new RuntimeException(je);
+            w.flush();
+            w.close();
         }
     }
 
