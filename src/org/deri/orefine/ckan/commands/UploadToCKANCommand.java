@@ -107,12 +107,11 @@ public class UploadToCKANCommand extends Command {
 
             writer.writeStartObject();
             writer.writeStringField("code", "ok");
-            writer.writeArrayFieldStart("package_details");
+            writer.writeFieldName("package_details");
             writer.writeStartObject();
             writer.writeStringField("packageUrl", packageUrl);
             writer.writeStringField("packageId", packageId);
             writer.writeEndObject();
-            writer.writeEndArray();
             writer.writeEndObject();
         } catch (Exception e) {
             respondException(response, e);
