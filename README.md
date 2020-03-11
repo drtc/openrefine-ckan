@@ -28,7 +28,7 @@ Developers
         
         git clone https://github.com/OpenRefine/OpenRefine.git
         cd OpenRefine/extensions
-        git clone <this-repository>
+        git clone https://github.com/drtc/openrefine-ckan.git
 
 * Add the following line to OpenRefine/extensions/pom.xml (under <modules>):
 
