@@ -1,18 +1,16 @@
-!! Forked from https://github.com/OpenGov-OpenData/openrefine-ckan-storage-extension
+# OpenRefine CKAN Export Extension
 
-# OpenRefine CKAN Storage Extension (for CKAN v2.2+)
+Directly upload from OpenRefine to CKAN using CKAN API.
 
-!! Currently tested and works with OpenRefine 2.6-beta1 and CKAN v2.2+
+Currently tested and works with OpenRefine 3.3 and CKAN v2.8.
 
-Upload data directly from Google Refine to CKAN using CKAN API.
-
-
-This project is a modifed and updated version of [Fadmaa](https://github.com/fadmaa/grefine-ckan-storage-extension)'s work. The earlier version did not support CKAN API v3. The source code is updated to comply with CKAN 2.2 and API v3. 
+This project is a modifed and updated version of [OpenGov](https://github.com/OpenGov-OpenData/openrefine-ckan-storage-extension)
+ package, which was based on [Fadmaa](https://github.com/fadmaa/grefine-ckan-storage-extension)'s work. 
 
 
-You can find more about the earlier version here:
+You can find more about the earlier versions here:
 
-[http://lab.linkeddata.deri.ie/2011/grefine-ckan/](http://lab.linkeddata.deri.ie/2011/grefine-ckan/)
+[https://github.com/OpenGov-OpenData/openrefine-ckan-storage-extension](https://github.com/OpenGov-OpenData/openrefine-ckan-storage-extension)
 
 and
 
@@ -21,43 +19,34 @@ and
 
 Installation
 -----
-* Make sure you have Google Refine installed on your machine (see [here](https://github.com/OpenRefine/OpenRefine/releases/tag/2.6-beta.1))
-* Pull grefine-ckan-storage-extension source into OpenRefine's extensions folder (create one if it doesn't exists):
-
-        * ex. MAC OS:
-        cd ~/Library/Application\ Support/OpenRefine/extensions/
-        git clone https://github.com/Ontodia/grefine-ckan-storage-extension.git
-        
-* Restart OpenRefine
+Binary package not yet ready. Only source available.
 
 Developers
 -----
-* If you made changes to the source you need to recompile OpenRefine. 
-* Add following lines to OpenRefine/extensions/build.xml:
-
-        <target name="build">
-                ...
-                <ant dir="grefine-ckan-storage-extension/" target="build" />
-        </target>
+* Download or clone OpenRefine 3.3 or latest
+* Clone openrefine-ckan source into OpenRefine's extensions folder:
         
-        <target name="clean">
-              ...
-              <ant dir="grefine-ckan-storage-extension/" target="clean" />
-        </target>
-        
-* Recompile OpenRefine source code as::
+        git clone https://github.com/OpenRefine/OpenRefine.git
+        cd OpenRefine/extensions
+        git clone <this-repository>
 
-        cd {{path_to_refine}}/OpenRefine/
+* Add the following line to OpenRefine/extensions/pom.xml (under <modules>):
+
+        <modules>
+            ...
+            <module>openrefine-ckan</module>
+        <modules>
+        
+* Recompile OpenRefine source code as:
+
         ./refine clean
-        ./refine build
+        ./refind build
         
-* Restart OpenRefine
+* Start OpenRefine
 
+        ./refine
 
 TODO
 -----
-*   Currently the upload uses CKAN API [create_resource](http://docs.ckan.org/en/latest/api/#ckan.logic.action.create.resource_create) action. By defualt this will timeout for large files after 30 secs. In order to fix this; use [datastore api](http://docs.ckan.org/en/ckan-2.2/datastore.html), split data into chunks and upload chunks via datastore api
-*   Better documentation
-*   Code clean-up
-*   We should test and fix problems with other OpenRefine and CKAN versions.
+*   Create binary package
 *   Feel free to contribute
